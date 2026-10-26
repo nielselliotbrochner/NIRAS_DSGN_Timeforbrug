@@ -1,5 +1,7 @@
 # NIRAS DSGN · Ikke-fakturerbar tid
 
+**Åbn dashboardet:** https://nielselliotbrochner.github.io/NIRAS_DSGN_Timeforbrug/
+
 Dashboard i NIRAS CVI, der viser hvordan afdelingerne i DSGN bruger ikke-fakturerbar tid, opdelt på opgave (Task Description), medarbejder, uge og medarbejdernes egne beskrivelser.
 
 ## Brug
