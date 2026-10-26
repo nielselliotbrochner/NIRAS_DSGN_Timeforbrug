@@ -1,0 +1,9 @@
+# Data må aldrig ligge på GitHub
+*.xlsx
+*.xlsm
+*.xls
+*.csv
+*.json
+!package.json
+node_modules/
+.DS_Store

@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ikke-fakturerbar tid</title>
+<style>
+:root {
+  --red: #BA1223; --deep: #700B15; --sand: #F2E2D5;
+  --bg: #FAF7F4; --panel: #FFFFFF; --fg: #1E1A18; --muted: #6E6662; --line: #E7DED7;
+  --band: #F2E2D5; --band-fg: #700B15; --accent: #BA1223; --track: #EFE8E2;
+  --tip-bg: #FFFFFF; --shadow: 0 6px 24px rgba(40, 20, 10, .14);
+  --sans: 'Aptos', 'Aptos Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --serif: 'Aptos Serif', Georgia, 'Times New Roman', serif;
+  --r: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161312; --panel: #211C1A; --fg: #F3ECE7; --muted: #A89E98; --line: #3A322E;
+    --band: #3A1418; --band-fg: #F2E2D5; --accent: #E3495A; --track: #2E2724;
+    --tip-bg: #2A2320; --shadow: 0 6px 24px rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 24px clamp(16px, 3vw, 40px) 48px; display: flex; flex-direction: column; gap: 20px; position: relative; }
+button, input, select { font: inherit; color: inherit; }
+
+.head { background: var(--band); border-left: 6px solid var(--accent); border-radius: var(--r); padding: 22px 28px; display: flex; flex-direction: column; gap: 8px; }
+.brand { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--band-fg); font-weight: 600; }
+.head h1 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 4vw, 40px); line-height: 1.1; color: var(--band-fg); }
+.sub { margin: 0; color: var(--band-fg); opacity: .85; }
+.take { margin: 0; max-width: 75ch; }
+.take b { font-weight: 600; }
+.head-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: 14px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn:focus-visible, .tab:focus-visible, .task:focus-visible, .more:focus-visible, th button:focus-visible, .cmp-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.drop { border: 2px dashed var(--line); border-radius: var(--r); background: var(--panel); padding: 18px 22px; display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; justify-content: space-between; transition: border-color .2s, background .2s; }
+.drop.over { border-color: var(--accent); background: var(--band); }
+.drop.big { padding: 56px 24px; flex-direction: column; justify-content: center; text-align: center; }
+.drop.big h2 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 26px; }
+.drop p { margin: 0; color: var(--muted); font-size: 14px; }
+.files { display: flex; flex-wrap: wrap; gap: 6px; }
+.file { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 3px 4px 3px 12px; }
+.file button { border: 0; background: transparent; cursor: pointer; color: var(--muted); width: 22px; height: 22px; border-radius: 50%; }
+.file button:hover { background: var(--line); color: var(--fg); }
+.msg { font-size: 13px; color: var(--muted); width: 100%; }
+.msg.err { color: var(--red); }
+
+.nav { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: 14px; }
+.tab[aria-selected=true] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.nav label { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+.nav select { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+.chip { border: 0; border-radius: 999px; padding: 5px 12px; background: var(--deep); color: #fff; cursor: pointer; font-size: 13px; }
+@media (prefers-color-scheme: dark) { .chip { background: var(--accent); } }
+.chip[hidden] { display: none; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: 14px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: var(--r); padding: 14px 18px; display: flex; flex-direction: column; gap: 4px; }
+.kpi.flag { background: var(--band); }
+.kpi .l { font-size: 13px; color: var(--muted); }
+.kpi .v { font-family: var(--serif); font-size: 30px; line-height: 1.1; }
+.kpi .n { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.note { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: 14px; }
+
+.gbar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--track); }
+.gbar span { display: block; height: 100%; }
+.glegend, .legend { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; color: var(--muted); }
+.glegend b { color: var(--fg); font-weight: 600; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+.tasks { display: flex; flex-direction: column; gap: 4px; }
+.task { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 7px 8px; border-radius: 8px; cursor: pointer; transition: opacity .25s; }
+.task:hover { background: var(--bg); }
+.task.dim { opacity: .4; }
+.task-top { display: flex; justify-content: space-between; gap: 14px; font-size: 14.5px; }
+.task-top .v { color: var(--muted); white-space: nowrap; }
+.task-top .v b { color: var(--fg); font-weight: 600; }
+.track { height: 12px; border-radius: 6px; background: var(--track); position: relative; overflow: hidden; }
+.fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 6px; }
+
+.cmp { display: flex; flex-direction: column; gap: 4px; }
+.cmp-head, .cmp-row { display: grid; grid-template-columns: minmax(5rem, 14rem) 1fr repeat(3, minmax(4.2rem, auto)); gap: 12px; align-items: center; font-size: 13.5px; }
+.cmp-head { color: var(--muted); font-size: 12px; padding: 0 8px; }
+.cmp-head span:nth-child(n+3), .cmp-row .c { text-align: right; white-space: nowrap; }
+.cmp-row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: minmax(5rem, 14rem) 1fr repeat(3, minmax(4.2rem, auto)); gap: 12px; align-items: center; font-size: 13.5px; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
+.cmp-row:hover { background: var(--bg); }
+.cmp-row .a { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmp-row .a b { font-weight: 600; margin-right: 6px; }
+.stack { position: relative; height: 14px; border-radius: 4px; overflow: hidden; background: var(--track); }
+.stack i { position: absolute; top: 0; bottom: 0; }
+
+.emps { display: flex; flex-direction: column; gap: 5px; }
+.emp { display: grid; grid-template-columns: minmax(6rem, 38%) 1fr auto; align-items: center; gap: 10px; font-size: 13px; }
+.emp .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.emp .n b { font-weight: 600; margin-right: 4px; }
+.emp .t { color: var(--muted); white-space: nowrap; min-width: 3.5em; text-align: right; }
+.etrack { position: relative; height: 14px; }
+.etrack i { position: absolute; top: 0; bottom: 0; }
+.etrack .z { width: 1px; background: var(--muted); top: -2px; bottom: -2px; }
+.more { all: unset; cursor: pointer; font-size: 13px; color: var(--accent); align-self: flex-start; }
+
+.weeks { min-height: 250px; position: relative; }
+.weeks svg { display: block; overflow: visible; }
+.weeks text { fill: var(--muted); font-size: 12px; font-family: var(--sans); }
+.weeks .grid-l { stroke: var(--line); }
+.weeks .zero-l { stroke: var(--muted); }
+
+.search { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px; width: min(100%, 24rem); }
+.tbox { max-height: 440px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { position: sticky; top: 0; background: var(--panel); text-align: left; font-weight: 600; border-bottom: 1px solid var(--line); padding: 0; z-index: 1; }
+th button { all: unset; cursor: pointer; display: block; padding: 8px 10px; white-space: nowrap; }
+th.num, td.num { text-align: right; }
+th[aria-sort=ascending] button::after { content: ' ▲'; font-size: .8em; }
+th[aria-sort=descending] button::after { content: ' ▼'; font-size: .8em; }
+td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.tw { min-width: 14rem; }
+.empty { font-size: 13px; color: var(--muted); padding: 14px; }
+
+.tip { position: absolute; z-index: 10; pointer-events: none; background: var(--tip-bg); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); padding: 6px 10px; font-size: 12.5px; max-width: 19rem; line-height: 1.45; }
+.tip[hidden] { display: none; }
+.tip .h { color: var(--muted); margin-bottom: 2px; }
+.tip .r { display: flex; justify-content: space-between; gap: 14px; }
+.tip .r b { font-weight: 600; }
+
+.foot { font-size: 12px; color: var(--muted); }
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .anim .fill, .anim .etrack i:not(.z), .anim .stack i { animation: grow .5s cubic-bezier(.2, .7, .2, 1) both; transform-origin: left center; }
+  @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}
+@media (max-width: 560px) {
+  .head { padding: 16px 18px; }
+  .emp { grid-template-columns: 5.5rem 1fr auto; }
+  .cmp-head, .cmp-row { grid-template-columns: 4.5rem 1fr minmax(3.6rem, auto); }
+  .cmp-head span:nth-child(n+4), .cmp-row .c.x { display: none; }
+}
+@media print {
+  body { background: #fff; }
+  .drop, .head-actions, .more, .search, .chip { display: none !important; }
+  .card, .kpi { break-inside: avoid; }
+  .tbox { max-height: none; overflow: visible; }
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header class="head">
+    <div class="brand">NIRAS · DSGN · Timeforbrug</div>
+    <h1>Ikke-fakturerbar tid</h1>
+    <p class="sub" id="sub">Upload afdelingernes Maconomy-eksporter for at komme i gang.</p>
+    <p class="take" id="take" hidden></p>
+    <div class="head-actions" id="actions" hidden>
+      <button class="btn" type="button" id="printBtn">Gem som PDF</button>
+      <button class="btn" type="button" id="clearBtn">Ryd alle data</button>
+    </div>
+  </header>
+
+  <section class="drop big" id="drop">
+    <div>
+      <h2 id="dropTitle">Træk Excel-filer hertil</h2>
+      <p id="dropText">En eksport pr. afdeling fra Maconomy (arket Export). Du kan tilføje flere afdelinger og måneder. En ny fil for samme afdeling og måned erstatter den gamle.</p>
+    </div>
+    <div class="files" id="files"></div>
+    <div>
+      <input type="file" id="fileInput" accept=".xlsx,.xlsm,.xls" multiple hidden>
+      <button class="btn primary" type="button" id="pickBtn">Vælg filer</button>
+    </div>
+    <div class="msg" id="msg" aria-live="polite"></div>
+  </section>
+
+  <div id="dash" hidden>
+    <div class="wrap" style="padding:0;max-width:none">
+      <nav class="nav">
+        <div class="tabs" role="tablist" id="tabs" aria-label="Afdeling"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <label id="perWrap">Periode <select id="perSel"></select></label>
+          <button class="chip" type="button" id="chip" hidden></button>
+        </div>
+      </nav>
+
+      <section class="kpis" aria-label="Nøgletal">
+        <div class="kpi"><div class="l">Ikke-fakturerbare timer</div><div class="v" id="k-timer">—</div><div class="n">Timer på interne opgaver (80xxxx), netto efter flytninger</div></div>
+        <div class="kpi"><div class="l">Kostpris</div><div class="v" id="k-kost">—</div><div class="n">Registreret kostpris (Cost Reg.) for de samme timer</div></div>
+        <div class="kpi"><div class="l">Andel administration</div><div class="v" id="k-admin">—</div><div class="n">Administration/internal work (805000) af alle ikke-fakturerbare timer</div></div>
+        <div class="kpi"><div class="l">Gns. timer pr. medarbejder</div><div class="v" id="k-pers">—</div><div class="n"><span id="k-folk">—</span> medarbejdere har registreret ikke-fakturerbar tid</div></div>
+        <div class="kpi flag"><div class="l">Skal flyttes til projekt</div><div class="v" id="k-flyt">—</div><div class="n">Timer hvor beskrivelsen siger flyttes, fordeles eller afventer sagsnummer</div></div>
+      </section>
+
+      <section class="card" id="cmpCard" hidden>
+        <div>
+          <h2>Afdelingerne side om side</h2>
+          <p class="note">Ikke-fakturerbare timer pr. afdeling, fordelt på opgave. Klik på en afdeling for at se den alene.</p>
+        </div>
+        <div class="legend lg"></div>
+        <div class="cmp" id="cmp"></div>
+      </section>
+
+      <section class="card">
+        <div>
+          <h2>Hvor går tiden hen</h2>
+          <p class="note">Timer pr. opgave (Task Description). Klik på en opgave for at filtrere medarbejdere, uger og beskrivelser.</p>
+        </div>
+        <div>
+          <div class="gbar" id="gbar"></div>
+          <div class="glegend" id="glegend" style="margin-top:8px"></div>
+        </div>
+        <div class="tasks" id="tasks"></div>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <div>
+            <h2>Hvem bruger tiden</h2>
+            <p class="note">Ikke-fakturerbare timer pr. medarbejder, fordelt på opgave.</p>
+          </div>
+          <div class="legend lg"></div>
+          <div class="emps" id="emps"></div>
+          <button class="more" type="button" id="moreBtn" hidden></button>
+        </section>
+        <section class="card">
+          <div>
+            <h2>Hvornår er tiden registreret</h2>
+            <p class="note">Timer pr. uge efter registreringsdato (Entry Date), fordelt på opgave.</p>
+          </div>
+          <div class="legend lg"></div>
+          <div class="weeks" id="weeks"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <div>
+          <h2>Hvad dækker opgaverne over</h2>
+          <p class="note">Medarbejdernes egne beskrivelser (Daily Description), samlet pr. afdeling, opgave og ens tekst.</p>
+        </div>
+        <input class="search" type="search" id="search" placeholder="Søg i beskrivelser, opgaver og initialer" aria-label="Søg i beskrivelser">
+        <div class="tbox">
+          <table id="descTable">
+            <thead><tr>
+              <th data-f="beskrivelse"><button type="button">Beskrivelse</button></th>
+              <th data-f="opgave_kort"><button type="button">Opgave</button></th>
+              <th data-f="afd" class="col-afd"><button type="button">Afd.</button></th>
+              <th data-f="timer" class="num"><button type="button">Timer</button></th>
+              <th data-f="antal" class="num"><button type="button">Reg.</button></th>
+              <th data-f="initialer"><button type="button">Medarbejdere</button></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div>
+          <h2>Tid der venter på et projektnummer</h2>
+          <p class="note">Registreringer hvor beskrivelsen nævner flytning, fordeling, ATR eller et kommende sagsnummer. Kandidater til at blive fakturerbar tid.</p>
+        </div>
+        <div class="tbox">
+          <table id="flytTable">
+            <thead><tr>
+              <th data-f="dato"><button type="button">Dato</button></th>
+              <th data-f="initialer"><button type="button">Medarb.</button></th>
+              <th data-f="afd" class="col-afd"><button type="button">Afd.</button></th>
+              <th data-f="opgave_kort"><button type="button">Opgave</button></th>
+              <th data-f="timer" class="num"><button type="button">Timer</button></th>
+              <th data-f="beskrivelse"><button type="button">Beskrivelse</button></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <p class="foot">Data læses kun i din browser og gemmes lokalt på denne computer, så de er der næste gang du åbner filen. Intet sendes videre, og intet ligger i HTML-filen.</p>
+    </div>
+  </div>
+  <div class="tip" id="tip" hidden></div>
+</div>
+
+<script>/*__XLSX__*/</script>
+<script>/*__CORE__*/</script>
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const ALLE = '__alle__';
+  const ORDER = ['805000', '809000', '806000', '807000', '802000', '802010'];
+  const PAL = {
+    light: { '805000': '#BA1223', '809000': '#700B15', '806000': '#D49A86', '807000': '#8A5A44', '802000': '#A39C97', '802010': '#5C5652' },
+    dark: { '805000': '#E3495A', '809000': '#F2A0A7', '806000': '#E2C4AE', '807000': '#B98A70', '802000': '#B3ADA8', '802010': '#7F7974' },
+  };
+  const GPAL = {
+    light: { 'Drift og ledelse': '#BA1223', 'Salg og marked': '#8A5A44', 'Kompetenceudvikling': '#A39C97' },
+    dark: { 'Drift og ledelse': '#E3495A', 'Salg og marked': '#B98A70', 'Kompetenceudvikling': '#B3ADA8' },
+  };
+  const GORDER = ['Drift og ledelse', 'Salg og marked', 'Kompetenceudvikling'];
+  const darkQ = matchMedia('(prefers-color-scheme: dark)');
+  const pal = () => (darkQ.matches ? PAL.dark : PAL.light);
+  const gpal = () => (darkQ.matches ? GPAL.dark : GPAL.light);
+  const farve = (k) => pal()[k] || '#9A9390';
+  const rang = (k) => { const i = ORDER.indexOf(k); return i < 0 ? 99 : i; };
+
+  const nf2 = new Intl.NumberFormat('da-DK', { maximumFractionDigits: 2 });
+  const nf1 = new Intl.NumberFormat('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const nf0 = new Intl.NumberFormat('da-DK', { maximumFractionDigits: 0 });
+  const fH = (v) => nf2.format(v);
+  const fT = (v) => nf2.format(v) + ' t';
+  const fP = (v) => nf1.format(v * 100) + ' %';
+  const fK = (v) => nf0.format(v) + ' kr.';
+
+  /* ---------- Lager (kun lokalt i browseren) ---------- */
+  const KEY = 'saet-v1';
+  let saet = [];
+  let dbP = null;
+  const db = () => dbP || (dbP = new Promise((res, rej) => {
+    const r = indexedDB.open('niras-ikkefakt', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  const idb = (mode, fn) => db().then((d) => new Promise((res, rej) => {
+    const q = fn(d.transaction('kv', mode).objectStore('kv'));
+    q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+  }));
+  const gem = () => idb('readwrite', (s) => s.put(saet, KEY)).catch(() => besked('Kunne ikke gemme lokalt i browseren. Data forsvinder, når siden lukkes.', true));
+
+  const state = { afd: ALLE, per: ALLE, opg: null, visAlle: false, sort: {} };
+  let animer = true;
+
+  /* ---------- Upload ---------- */
+  const drop = $('#drop'), input = $('#fileInput');
+  $('#pickBtn').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { laesFiler([...input.files]); input.value = ''; });
+  ['dragenter', 'dragover'].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); if (t === 'drop' || !e.relatedTarget) drop.classList.remove('over'); }));
+  document.addEventListener('drop', (e) => { const f = [...(e.dataTransfer?.files || [])]; if (f.length) laesFiler(f); });
+
+  function besked(t, fejl) { const m = $('#msg'); m.textContent = t; m.classList.toggle('err', !!fejl); }
+
+  async function laesFiler(filer) {
+    const linjer = [], fejl = [];
+    for (const f of filer) {
+      try {
+        const buf = await f.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets['Export'] || wb.Sheets[wb.SheetNames[0]];
+        const rows = NR.omsaet(XLSX.utils.sheet_to_json(ws, { defval: null }), f.name);
+        for (const d of NR.grupper(rows, f.name)) {
+          const i = saet.findIndex((s) => s.noegle === d.noegle);
+          if (i >= 0) saet[i] = d; else saet.push(d);
+          linjer.push(`${NR.afdKort(d.afdeling)} ${NR.periodeNavn(d.periode)}${i >= 0 ? ' (erstattet)' : ''}`);
+        }
+      } catch (err) { fejl.push(`${f.name}: ${err.message}`); }
+    }
+    saet.sort((a, b) => a.afdeling.localeCompare(b.afdeling, 'da') || a.periode.localeCompare(b.periode));
+    gem();
+    besked([linjer.length ? 'Indlæst: ' + linjer.join(', ') + '.' : '', fejl.join(' ')].filter(Boolean).join(' '), fejl.length > 0);
+    animer = true;
+    render();
+  }
+
+  $('#clearBtn').addEventListener('click', () => {
+    if (!confirm('Fjern alle indlæste data fra denne browser?')) return;
+    saet = []; gem(); state.afd = ALLE; state.per = ALLE; state.opg = null; besked(''); render();
+  });
+  $('#printBtn').addEventListener('click', () => window.print());
+  $('#chip').addEventListener('click', () => { state.opg = null; render(); });
+  $('#perSel').addEventListener('change', (e) => { state.per = e.target.value; state.opg = null; animer = true; render(); });
+  $('#moreBtn').addEventListener('click', () => { state.visAlle = !state.visAlle; render(); });
+  darkQ.addEventListener?.('change', () => render());
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => tegnUger(sidste.uger), 120); });
+
+  /* ---------- Tooltip ---------- */
+  const tip = $('#tip'), app = $('#app');
+  function visTip(ev, head, lines) {
+    tip.replaceChildren(el('div', 'h', head));
+    for (const [sw, n, v] of lines) {
+      const r = el('div', 'r'), a = el('span');
+      if (sw) { const s = el('i', 'sw'); s.style.background = sw; a.appendChild(s); }
+      a.appendChild(document.createTextNode(n));
+      r.append(a, el('b', null, v)); tip.appendChild(r);
+    }
+    tip.hidden = false;
+    const b = app.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+    let x = ev.clientX - b.left + 14, y = ev.clientY - b.top + 14;
+    if (x + tw > b.width) x = Math.max(0, ev.clientX - b.left - tw - 14);
+    if (ev.clientY + th + 20 > window.innerHeight) y = ev.clientY - b.top - th - 14;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  const skjulTip = () => { tip.hidden = true; };
+  const hover = (node, fn) => { node.addEventListener('mousemove', (e) => { const [h, l] = fn(); visTip(e, h, l); }); node.addEventListener('mouseleave', skjulTip); };
+
+  /* ---------- Render ---------- */
+  const sidste = { uger: [] };
+  function render() {
+    const harData = saet.length > 0;
+    drop.classList.toggle('big', !harData);
+    $('#dropTitle').textContent = harData ? 'Tilføj eller opdater afdelinger' : 'Træk Excel-filer hertil';
+    $('#dropText').hidden = harData;
+    $('#actions').hidden = !harData;
+    $('#dash').hidden = !harData;
+    $('#take').hidden = !harData;
+    tegnFiler();
+    if (!harData) { $('#sub').textContent = 'Upload afdelingernes Maconomy-eksporter for at komme i gang.'; return; }
+
+    const afdelinger = [...new Set(saet.map((s) => s.afdeling))].sort((a, b) => a.localeCompare(b, 'da'));
+    const perioder = [...new Set(saet.map((s) => s.periode))].sort().reverse();
+    if (state.afd !== ALLE && !afdelinger.includes(state.afd)) state.afd = ALLE;
+    if (state.per !== ALLE && !perioder.includes(state.per)) state.per = ALLE;
+    if (perioder.length === 1) state.per = perioder[0];
+
+    // Faner
+    const tabs = $('#tabs'); tabs.replaceChildren();
+    const fane = (val, txt, title) => {
+      const b = el('button', 'tab', txt); b.type = 'button'; b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(state.afd === val)); if (title) b.title = title;
+      b.addEventListener('click', () => { state.afd = val; state.opg = null; state.visAlle = false; animer = true; render(); });
+      tabs.appendChild(b);
+    };
+    if (afdelinger.length > 1) fane(ALLE, 'Alle afdelinger');
+    else state.afd = afdelinger[0];
+    afdelinger.forEach((a) => fane(a, NR.afdKort(a), a));
+
+    // Periode
+    const ps = $('#perSel'); ps.replaceChildren();
+    if (perioder.length > 1) ps.appendChild(new Option('Alle perioder', ALLE));
+    perioder.forEach((p) => ps.appendChild(new Option(NR.periodeNavn(p), p)));
+    ps.value = state.per;
+    $('#perWrap').hidden = perioder.length < 2;
+
+    // Udvalg
+    const valgt = saet.filter((s) => (state.afd === ALLE || s.afdeling === state.afd) && (state.per === ALLE || s.periode === state.per));
+    const alle = valgt.flatMap((s) => s.rows).filter((r) => !r.fakturerbar);
+    const opgRows = NR.sumBy(alle, (r) => r.opgavekode, (r) => ({ opgavekode: r.opgavekode, opgave: r.opgave, opgave_kort: r.opgave_kort, gruppe: r.gruppe }));
+    const total = NR.sum(alle, (r) => r.timer);
+    opgRows.forEach((o) => { o.andel = total ? o.timer / total : 0; });
+    opgRows.sort((a, b) => b.timer - a.timer);
+    if (state.opg && !opgRows.some((o) => o.opgavekode === state.opg)) state.opg = null;
+    const sel = state.opg;
+    const udv = sel ? alle.filter((r) => r.opgavekode === sel) : alle;
+    const flereAfd = state.afd === ALLE && new Set(valgt.map((s) => s.afdeling)).size > 1;
+    document.querySelectorAll('.col-afd').forEach((c) => { c.hidden = !flereAfd; });
+
+    // Header
+    const afdTxt = state.afd === ALLE ? (afdelinger.length > 1 ? `Alle afdelinger (${afdelinger.map(NR.afdKort).join(', ')})` : afdelinger[0]) : state.afd;
+    const perTxt = state.per === ALLE ? 'alle perioder' : NR.periodeNavn(state.per);
+    $('#sub').textContent = `${afdTxt} · ${perTxt}`;
+    const kt = NR.noegletal(alle);
+    $('#k-timer').textContent = nf1.format(kt.timer);
+    $('#k-kost').textContent = fK(kt.kostpris);
+    $('#k-admin').textContent = fP(kt.admin_andel);
+    $('#k-pers').textContent = nf1.format(kt.pr_medarbejder);
+    $('#k-folk').textContent = String(kt.medarbejdere);
+    $('#k-flyt').textContent = nf1.format(kt.flyt_timer);
+    const take = $('#take'); take.replaceChildren();
+    if (opgRows.length) {
+      const top = opgRows[0];
+      take.append('Største post er ', el('b', null, top.opgave), ' med ', el('b', null, fP(top.andel)), ' af den ikke-fakturerbare tid.');
+      if (kt.flyt_timer > 0) take.append(' ', el('b', null, fH(kt.flyt_timer)), ' timer er ifølge beskrivelsen tid, der skal flyttes til et projekt.');
+    } else take.textContent = 'Der er ingen ikke-fakturerbare timer i udvalget.';
+
+    const chip = $('#chip');
+    const selName = sel && opgRows.find((o) => o.opgavekode === sel)?.opgave;
+    chip.hidden = !selName; chip.textContent = selName ? `Opgave: ${selName}  ×` : '';
+
+    app.classList.toggle('anim', animer);
+    tegnLegender(opgRows);
+    tegnSammenligning(flereAfd ? valgt : [], sel);
+    tegnGrupper(alle, total);
+    tegnOpgaver(opgRows, sel);
+    tegnMedarbejdere(udv, sel);
+    sidste.uger = udv; tegnUger(udv);
+    tegnBeskrivelser(udv);
+    tegnFlyt(udv);
+    if (animer) { animer = false; setTimeout(() => app.classList.remove('anim'), 900); }
+  }
+
+  function tegnFiler() {
+    const box = $('#files'); box.replaceChildren();
+    for (const s of saet) {
+      const c = el('span', 'file');
+      c.title = `${s.afdeling} · ${NR.periodeNavn(s.periode)} · ${s.rows.length} registreringer · fra ${s.fil}`;
+      c.append(`${NR.afdKort(s.afdeling)} · ${NR.periodeNavn(s.periode)}`);
+      const x = el('button', null, '×'); x.type = 'button'; x.setAttribute('aria-label', `Fjern ${s.afdeling} ${NR.periodeNavn(s.periode)}`);
+      x.addEventListener('click', () => { saet = saet.filter((t) => t !== s); gem(); render(); });
+      c.appendChild(x); box.appendChild(c);
+    }
+  }
+
+  function tegnLegender(opgRows) {
+    const koder = opgRows.slice().sort((a, b) => rang(a.opgavekode) - rang(b.opgavekode));
+    document.querySelectorAll('.lg').forEach((lg) => {
+      lg.replaceChildren();
+      for (const o of koder) { const s = el('span'); const sw = el('i', 'sw'); sw.style.background = farve(o.opgavekode); s.append(sw, o.opgave_kort); lg.appendChild(s); }
+    });
+  }
+
+  function tegnSammenligning(valgt, sel) {
+    $('#cmpCard').hidden = !valgt.length;
+    if (!valgt.length) return;
+    const box = $('#cmp'); box.replaceChildren();
+    const hd = el('div', 'cmp-head');
+    hd.append(el('span', null, 'Afdeling'), el('span', null, sel ? 'Valgt opgave' : 'Fordeling'), el('span', null, 'Timer'), el('span', null, 'Pr. medarb.'), el('span', null, 'Adm.-andel'));
+    box.appendChild(hd);
+    const pr = new Map();
+    for (const s of valgt) for (const r of s.rows) if (!r.fakturerbar) { if (!pr.has(s.afdeling)) pr.set(s.afdeling, []); pr.get(s.afdeling).push(r); }
+    const liste = [...pr.entries()].map(([afd, rows]) => {
+      const brug = sel ? rows.filter((r) => r.opgavekode === sel) : rows;
+      const segs = NR.sumBy(brug, (r) => r.opgavekode, (r) => ({ opgavekode: r.opgavekode, opgave_kort: r.opgave_kort })).sort((a, b) => rang(a.opgavekode) - rang(b.opgavekode));
+      return { afd, kt: NR.noegletal(rows), segs, vis: NR.sum(brug, (r) => r.timer) };
+    }).sort((a, b) => b.vis - a.vis);
+    const max = Math.max(1, ...liste.map((l) => NR.sum(l.segs, (s) => Math.max(0, s.timer))));
+    for (const l of liste) {
+      const b = el('button', 'cmp-row'); b.type = 'button';
+      const a = el('span', 'a'); a.append(el('b', null, NR.afdKort(l.afd)), l.afd.split(' - ').slice(1).join(' - '));
+      const st = el('span', 'stack'); let x = 0;
+      for (const s of l.segs) { if (s.timer <= 0) continue; const i = el('i'); i.style.left = (x / max * 100) + '%'; i.style.width = (s.timer / max * 100) + '%'; i.style.background = farve(s.opgavekode); x += s.timer; st.appendChild(i); }
+      b.append(a, st, el('span', 'c', fT(l.vis)), el('span', 'c x', nf1.format(l.kt.pr_medarbejder)), el('span', 'c x', fP(l.kt.admin_andel)));
+      b.addEventListener('click', () => { state.afd = l.afd; state.visAlle = false; animer = true; render(); });
+      hover(b, () => [l.afd, [...l.segs.filter((s) => s.timer).map((s) => [farve(s.opgavekode), s.opgave_kort, fT(s.timer)]), [null, 'Medarbejdere', String(l.kt.medarbejdere)], [null, 'Kostpris', fK(l.kt.kostpris)]]]);
+      box.appendChild(b);
+    }
+  }
+
+  function tegnGrupper(rows, total) {
+    const bar = $('#gbar'), lg = $('#glegend'); bar.replaceChildren(); lg.replaceChildren();
+    const g = NR.sumBy(rows, (r) => r.gruppe, (r) => ({ gruppe: r.gruppe })).filter((o) => o.timer > 0)
+      .sort((a, b) => (GORDER.indexOf(a.gruppe) + 1 || 9) - (GORDER.indexOf(b.gruppe) + 1 || 9));
+    for (const o of g) {
+      const andel = total ? o.timer / total : 0, c = gpal()[o.gruppe] || '#9A9390';
+      const s = el('span'); s.style.width = (andel * 100) + '%'; s.style.background = c;
+      hover(s, () => [o.gruppe, [[c, 'Timer', fT(o.timer)], [null, 'Andel', fP(andel)]]]);
+      bar.appendChild(s);
+      const l = el('span'); const sw = el('i', 'sw'); sw.style.background = c;
+      l.append(sw, o.gruppe + ' ', el('b', null, fP(andel)), ` · ${fT(o.timer)}`); lg.appendChild(l);
+    }
+  }
+
+  function tegnOpgaver(opgRows, sel) {
+    const box = $('#tasks'); box.replaceChildren();
+    const max = Math.max(1, ...opgRows.map((o) => o.timer));
+    for (const o of opgRows) {
+      const b = el('button', 'task' + (sel && sel !== o.opgavekode ? ' dim' : '')); b.type = 'button';
+      b.setAttribute('aria-pressed', String(sel === o.opgavekode));
+      const top = el('div', 'task-top'); const v = el('span', 'v');
+      v.append(el('b', null, fT(o.timer)), ` · ${fP(o.andel)}`);
+      top.append(el('span', null, o.opgave), v);
+      const tr = el('div', 'track'), f = el('div', 'fill');
+      f.style.width = (Math.max(0, o.timer) / max * 100) + '%'; f.style.background = farve(o.opgavekode);
+      tr.appendChild(f); b.append(top, tr);
+      b.addEventListener('click', () => { state.opg = sel === o.opgavekode ? null : o.opgavekode; state.visAlle = false; render(); });
+      hover(b, () => [o.opgave, [[farve(o.opgavekode), 'Timer', fT(o.timer)], [null, 'Andel', fP(o.andel)], [null, 'Kostpris', fK(o.kostpris)], [null, 'Medarbejdere', String(o.folk.size)], [null, 'Gruppe', o.gruppe]]]);
+      box.appendChild(b);
+    }
+    if (!opgRows.length) box.appendChild(el('div', 'empty', 'Ingen ikke-fakturerbare timer i udvalget.'));
+  }
+
+  function tegnMedarbejdere(rows, sel) {
+    const box = $('#emps'); box.replaceChildren();
+    const pers = new Map();
+    for (const r of rows) {
+      const k = r.initialer + '|' + r.afdeling;
+      if (!pers.has(k)) pers.set(k, { ini: r.initialer, navn: r.medarbejder, afd: r.afdeling, rows: [] });
+      pers.get(k).rows.push(r);
+    }
+    const liste = [...pers.values()].map((p) => ({
+      ...p, total: NR.sum(p.rows, (r) => r.timer),
+      segs: NR.sumBy(p.rows, (r) => r.opgavekode, (r) => ({ opgavekode: r.opgavekode, opgave_kort: r.opgave_kort })).filter((s) => s.timer).sort((a, b) => rang(a.opgavekode) - rang(b.opgavekode)),
+    })).filter((p) => p.segs.length).sort((a, b) => b.total - a.total);
+    let lo = 0, hi = 0;
+    for (const p of liste) { lo = Math.min(lo, NR.sum(p.segs, (s) => Math.min(0, s.timer))); hi = Math.max(hi, NR.sum(p.segs, (s) => Math.max(0, s.timer))); }
+    const span = (hi - lo) || 1, pct = (v) => ((v - lo) / span * 100) + '%';
+    const flereAfd = new Set(liste.map((p) => p.afd)).size > 1;
+    for (const p of state.visAlle ? liste : liste.slice(0, 12)) {
+      const row = el('div', 'emp'), n = el('div', 'n');
+      n.append(el('b', null, p.ini), p.navn); n.title = p.navn + (flereAfd ? ' · ' + p.afd : '');
+      const t = el('div', 'etrack'); let pos = 0, neg = 0;
+      for (const s of p.segs) {
+        const i = el('i'); const x0 = s.timer > 0 ? pos : neg + s.timer;
+        if (s.timer > 0) pos += s.timer; else neg += s.timer;
+        i.style.left = pct(x0); i.style.width = (Math.abs(s.timer) / span * 100) + '%'; i.style.background = farve(s.opgavekode);
+        t.appendChild(i);
+      }
+      if (lo < 0) { const z = el('i', 'z'); z.style.left = pct(0); t.appendChild(z); }
+      row.append(n, t, el('div', 't', fT(p.total)));
+      hover(row, () => [`${p.ini} · ${p.navn}${flereAfd ? ' (' + NR.afdKort(p.afd) + ')' : ''}`, p.segs.map((s) => [farve(s.opgavekode), s.opgave_kort, fT(s.timer)])]);
+      box.appendChild(row);
+    }
+    if (!liste.length) box.appendChild(el('div', 'empty', 'Ingen timer i udvalget.'));
+    const mb = $('#moreBtn'); mb.hidden = liste.length <= 12;
+    mb.textContent = state.visAlle ? 'Vis top 12' : `Vis alle ${liste.length}`;
+  }
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  function paeneTicks(lo, hi, n) {
+    const raw = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(raw || 1))), f = raw / mag;
+    const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+    const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step, t = [];
+    for (let v = a; v <= b + step / 2; v += step) t.push(Math.round(v * 1e6) / 1e6);
+    return t;
+  }
+  function tegnUger(rows) {
+    const box = $('#weeks'); box.replaceChildren();
+    const W = box.clientWidth; if (!W) return;
+    if (!rows.length) { box.appendChild(el('div', 'empty', 'Ingen timer i udvalget.')); return; }
+    const uger = [...new Set(rows.map((r) => r.uge))].sort();
+    const data = uger.map((u) => {
+      const segs = NR.sumBy(rows.filter((r) => r.uge === u), (r) => r.opgavekode, (r) => ({ opgavekode: r.opgavekode, opgave_kort: r.opgave_kort })).filter((s) => s.timer).sort((a, b) => rang(a.opgavekode) - rang(b.opgavekode));
+      let pos = 0, neg = 0;
+      for (const s of segs) { if (s.timer > 0) { s.y0 = pos; pos += s.timer; s.y1 = pos; } else { s.y1 = neg; neg += s.timer; s.y0 = neg; } }
+      return { u, segs, pos, neg, total: pos + neg };
+    });
+    const ticks = paeneTicks(Math.min(0, ...data.map((d) => d.neg)), Math.max(1, ...data.map((d) => d.pos)), 4);
+    const lo = ticks[0], hi = ticks[ticks.length - 1];
+    const H = 250, mt = 8, mb = 26;
+    const y = (v) => mt + (hi - v) / (hi - lo) * (H - mt - mb);
+    const svg = sv('svg', { width: '100%', height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Timer pr. uge' }, box);
+    const lbl = ticks.map((t) => { const e = sv('text', { 'text-anchor': 'end', 'dominant-baseline': 'middle', y: y(t) }, svg); e.textContent = fH(t); return e; });
+    const ml = Math.ceil(Math.max(...lbl.map((e) => e.getComputedTextLength()))) + 10;
+    lbl.forEach((e) => e.setAttribute('x', ml - 6));
+    ticks.forEach((t) => sv('line', { x1: ml, x2: W, y1: y(t), y2: y(t), class: t === 0 ? 'zero-l' : 'grid-l' }, svg));
+    const stepX = (W - ml) / uger.length, bw = Math.min(32, stepX * 0.7);
+    const every = Math.ceil(uger.length / Math.max(1, Math.floor((W - ml) / 44)));
+    data.forEach((d, i) => {
+      const cx = ml + stepX * (i + .5);
+      for (const s of d.segs) sv('rect', { x: cx - bw / 2, width: bw, y: y(Math.max(s.y0, s.y1)), height: Math.max(0, Math.abs(y(s.y0) - y(s.y1)) - 1), rx: 3, fill: farve(s.opgavekode) }, svg);
+      if (i % every === 0) { const t = sv('text', { x: cx, y: H - 6, 'text-anchor': 'middle' }, svg); t.textContent = 'U' + Number(d.u.slice(-2)); }
+      const hit = sv('rect', { x: ml + stepX * i, width: stepX, y: mt, height: H - mt - mb, fill: 'transparent' }, svg);
+      hover(hit, () => {
+        const l = d.segs.map((s) => [farve(s.opgavekode), s.opgave_kort, fT(s.timer)]);
+        if (l.length > 1) l.push([null, 'I alt', fT(d.total)]);
+        return [`Uge ${Number(d.u.slice(-2))}, ${d.u.slice(0, 4)}`, l];
+      });
+    });
+  }
+
+  function tabel(id, kolonner, rows, standard) {
+    const t = $(id), tb = t.querySelector('tbody'), ths = [...t.querySelectorAll('th')];
+    const s = state.sort[id] || (state.sort[id] = { f: standard[0], d: standard[1] });
+    if (!t.dataset.bound) {
+      t.dataset.bound = '1';
+      ths.forEach((th) => th.querySelector('button').addEventListener('click', () => {
+        const f = th.dataset.f, ss = state.sort[id];
+        if (ss.f === f) ss.d = ss.d === 'asc' ? 'desc' : 'asc'; else { ss.f = f; ss.d = kolonner[f].num ? 'desc' : 'asc'; }
+        render();
+      }));
+    }
+    ths.forEach((th) => th.setAttribute('aria-sort', th.dataset.f === s.f ? (s.d === 'asc' ? 'ascending' : 'descending') : 'none'));
+    const k = kolonner[s.f] || {};
+    const sorteret = rows.slice().sort((a, b) => {
+      const d = k.num ? a[s.f] - b[s.f] : String(a[s.f] ?? '').localeCompare(String(b[s.f] ?? ''), 'da');
+      return s.d === 'asc' ? d : -d;
+    });
+    tb.replaceChildren();
+    for (const r of sorteret) {
+      const tr = el('tr');
+      for (const th of ths) {
+        const f = th.dataset.f, td = el('td', kolonner[f].num ? 'num' : kolonner[f].wrap ? 'tw' : '', kolonner[f].fmt ? kolonner[f].fmt(r[f]) : (r[f] ?? ''));
+        if (th.hidden) td.hidden = true;
+        tr.appendChild(td);
+      }
+      tb.appendChild(tr);
+    }
+    if (!sorteret.length) { const tr = el('tr'), td = el('td', 'empty', 'Ingen registreringer i udvalget.'); td.colSpan = ths.length; tr.appendChild(td); tb.appendChild(tr); }
+  }
+
+  let besk = [];
+  $('#search').addEventListener('input', () => visBesk());
+  function tegnBeskrivelser(rows) {
+    const m = new Map();
+    for (const r of rows) {
+      const tekst = r.beskrivelse || '(ingen beskrivelse)';
+      const k = r.afdeling + '|' + r.opgavekode + '|' + tekst.toLowerCase();
+      let o = m.get(k);
+      if (!o) { o = { beskrivelse: tekst, opgave_kort: r.opgave_kort, afd: NR.afdKort(r.afdeling), timer: 0, antal: 0, folk: new Set() }; m.set(k, o); }
+      o.timer += r.timer; o.antal += 1; o.folk.add(r.initialer);
+    }
+    besk = [...m.values()].map(({ folk, ...o }) => ({ ...o, initialer: [...folk].sort().join(', ') }));
+    visBesk();
+  }
+  function visBesk() {
+    const q = $('#search').value.trim().toLowerCase();
+    const rows = q ? besk.filter((r) => [r.beskrivelse, r.opgave_kort, r.afd, r.initialer].some((v) => String(v).toLowerCase().includes(q))) : besk;
+    tabel('#descTable', { beskrivelse: { wrap: true }, opgave_kort: {}, afd: {}, timer: { num: true, fmt: fH }, antal: { num: true, fmt: String }, initialer: {} }, rows, ['timer', 'desc']);
+  }
+  function tegnFlyt(rows) {
+    const f = rows.filter((r) => r.skal_flyttes).map((r) => ({ ...r, afd: NR.afdKort(r.afdeling) }));
+    tabel('#flytTable', { dato: {}, initialer: {}, afd: {}, opgave_kort: {}, timer: { num: true, fmt: fH }, beskrivelse: { wrap: true } }, f, ['dato', 'desc']);
+  }
+
+  idb('readonly', (s) => s.get(KEY)).then((v) => { if (Array.isArray(v)) saet = v; }).catch(() => {}).finally(render);
+})();
+</script>
+</body>
+</html>
